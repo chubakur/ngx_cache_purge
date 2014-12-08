@@ -37,6 +37,8 @@
 #error This module cannot be build against an unknown nginx version.
 #endif
 
+#if (NGX_HTTP_CACHE)
+
 typedef struct {
     ngx_flag_t                    enable;
     ngx_str_t                     method;
@@ -839,3 +841,5 @@ ngx_module_t  ngx_http_cache_purge_module = {
     NULL,                              /* exit master */
     NGX_MODULE_V1_PADDING
 };
+
+#endif
