@@ -237,21 +237,21 @@ typedef struct {
 } ngx_http_proxy_loc_conf_t;
 
 ngx_int_t ngx_http_proxy_uri_save_mem_tree_handler(ngx_http_request_t* r){
-	ngx_http_cache_purge_loc_conf_t  *cplcf;
+    ngx_http_cache_purge_loc_conf_t  *cplcf;
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "REQUEST PREPROXY HANDLER: %V", &(r->uri));
-	cplcf = ngx_http_get_module_loc_conf(r, ngx_http_cache_purge_module);
-	return cplcf->proxy_handler(r);
+    cplcf = ngx_http_get_module_loc_conf(r, ngx_http_cache_purge_module);
+    return cplcf->proxy_handler(r);
 }
 
 char * ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_cache_purge_loc_conf_t  *cplcf;
-	ngx_http_core_loc_conf_t  *clcf;
+    ngx_http_core_loc_conf_t  *clcf;
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     cplcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_cache_purge_module);
-	cplcf->proxy.enable = 1;
-	cplcf->proxy_handler = clcf->handler;
-	clcf->handler = ngx_http_proxy_uri_save_mem_tree_handler;
+    cplcf->proxy.enable = 1;
+    cplcf->proxy_handler = clcf->handler;
+    clcf->handler = ngx_http_proxy_uri_save_mem_tree_handler;
     return NGX_CONF_OK;
 }
 
