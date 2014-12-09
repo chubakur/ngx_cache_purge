@@ -249,9 +249,7 @@ char * ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_http_core_loc_conf_t  *clcf;
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     cplcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_cache_purge_module);
-    cplcf->proxy.enable = 1;
     cplcf->proxy_handler = clcf->handler;
-    clcf->handler = ngx_http_proxy_uri_save_mem_tree_handler;
     return NGX_CONF_OK;
 }
 
@@ -828,6 +826,11 @@ ngx_http_cache_purge_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
             return NGX_CONF_OK;
         }
+    }
+
+    if (conf->proxy_handler != NULL){
+        clcf->handler = ngx_http_proxy_uri_save_mem_tree_handler;
+        return NGX_CONF_OK;
     }
 
     ngx_conf_merge_ptr_value(conf->conf, prev->conf, NULL);
