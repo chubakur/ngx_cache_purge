@@ -51,11 +51,16 @@ typedef struct {
     ngx_http_cache_purge_conf_t  *conf;
     ngx_http_handler_pt           handler;
     ngx_http_handler_pt           original_handler;
+	ngx_http_handler_pt			  proxy_handler;
 } ngx_http_cache_purge_loc_conf_t;
 
 
 char       *ngx_http_proxy_cache_purge_conf(ngx_conf_t *cf,
                 ngx_command_t *cmd, void *conf);
+
+char       *ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf,
+                ngx_command_t *cmd, void *conf);
+
 ngx_int_t   ngx_http_proxy_cache_purge_handler(ngx_http_request_t *r);
 
 ngx_int_t   ngx_http_cache_purge_access_handler(ngx_http_request_t *r);
@@ -80,6 +85,12 @@ static ngx_command_t  ngx_http_cache_purge_module_commands[] = {
     { ngx_string("proxy_cache_purge"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_http_proxy_cache_purge_conf,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+    { ngx_string("proxy_uri_save_mem_tree"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
+      ngx_http_proxy_uri_save_mem_tree_conf,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -225,6 +236,25 @@ typedef struct {
 #  endif
 } ngx_http_proxy_loc_conf_t;
 
+ngx_int_t ngx_http_proxy_uri_save_mem_tree_handler(ngx_http_request_t* r){
+	ngx_http_cache_purge_loc_conf_t  *cplcf;
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "JUST REQUEST");
+	cplcf = ngx_http_get_module_loc_conf(r, ngx_http_cache_purge_module);
+	return cplcf->proxy_handler(r);
+}
+
+char * ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_cache_purge_loc_conf_t  *cplcf;
+	ngx_http_core_loc_conf_t  *clcf;
+    clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+    cplcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_cache_purge_module);
+	cplcf->proxy.enable = 1;
+	cplcf->proxy_handler = clcf->handler;
+	clcf->handler = ngx_http_proxy_uri_save_mem_tree_handler;
+    return NGX_CONF_OK;
+}
+
 char *
 ngx_http_proxy_cache_purge_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -297,7 +327,7 @@ ngx_http_proxy_cache_purge_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 ngx_int_t
 ngx_http_proxy_cache_purge_handler(ngx_http_request_t *r)
 {
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "REQUEST %d %d", 10, 777);
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "PURGE REQUEST");
     ngx_http_proxy_loc_conf_t  *plcf;
 
     plcf = ngx_http_get_module_loc_conf(r, ngx_http_proxy_module);
@@ -322,6 +352,8 @@ ngx_http_proxy_cache_purge_handler(ngx_http_request_t *r)
 ngx_int_t
 ngx_http_cache_purge_access_handler(ngx_http_request_t *r)
 {
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ACCESS HANDLER");
+    
     ngx_http_cache_purge_loc_conf_t   *cplcf;
 
     cplcf = ngx_http_get_module_loc_conf(r, ngx_http_cache_purge_module);
@@ -753,7 +785,7 @@ ngx_http_cache_purge_create_loc_conf(ngx_conf_t *cf)
 
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_cache_purge_loc_conf_t));
     if (conf == NULL) {
-        return NULL;
+        return NGX_CONF_ERROR;
     }
 
     /*
