@@ -238,7 +238,7 @@ typedef struct {
 
 ngx_int_t ngx_http_proxy_uri_save_mem_tree_handler(ngx_http_request_t* r){
 	ngx_http_cache_purge_loc_conf_t  *cplcf;
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "JUST REQUEST");
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "REQUEST PREPROXY HANDLER: %V", &(r->uri));
 	cplcf = ngx_http_get_module_loc_conf(r, ngx_http_cache_purge_module);
 	return cplcf->proxy_handler(r);
 }
