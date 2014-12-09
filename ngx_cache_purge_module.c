@@ -51,7 +51,7 @@ typedef struct {
     ngx_http_cache_purge_conf_t  *conf;
     ngx_http_handler_pt           handler;
     ngx_http_handler_pt           original_handler;
-	ngx_http_handler_pt			  proxy_handler;
+    ngx_http_handler_pt           proxy_handler;
 } ngx_http_cache_purge_loc_conf_t;
 
 
