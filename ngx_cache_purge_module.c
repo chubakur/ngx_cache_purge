@@ -40,6 +40,13 @@
 #if (NGX_HTTP_CACHE)
 
 typedef struct {
+    ngx_str_t name;
+    ngx_flag_t directory;
+    void *next;
+    void *childs;
+} fs_hierarchy;
+
+typedef struct {
     ngx_flag_t                    enable;
     ngx_str_t                     method;
     ngx_array_t                  *access;   /* array of ngx_in_cidr_t */
@@ -52,34 +59,29 @@ typedef struct {
     ngx_http_handler_pt           handler;
     ngx_http_handler_pt           original_handler;
     ngx_http_handler_pt           proxy_handler;
+    fs_hierarchy                 *root;
 } ngx_http_cache_purge_loc_conf_t;
 
 
-char       *ngx_http_proxy_cache_purge_conf(ngx_conf_t *cf,
-                ngx_command_t *cmd, void *conf);
+char       *ngx_http_proxy_cache_purge_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
-char       *ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf,
-                ngx_command_t *cmd, void *conf);
+char       *ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 ngx_int_t   ngx_http_proxy_cache_purge_handler(ngx_http_request_t *r);
 
 ngx_int_t   ngx_http_cache_purge_access_handler(ngx_http_request_t *r);
-ngx_int_t   ngx_http_cache_purge_access(ngx_array_t *a, ngx_array_t *a6,
-    struct sockaddr *s);
+ngx_int_t   ngx_http_cache_purge_access(ngx_array_t *a, ngx_array_t *a6, struct sockaddr *s);
 
 ngx_int_t   ngx_http_cache_purge_send_response(ngx_http_request_t *r);
-ngx_int_t   ngx_http_cache_purge_init(ngx_http_request_t *r,
-    ngx_http_file_cache_t *cache, ngx_http_complex_value_t *cache_key);
+ngx_int_t   ngx_http_cache_purge_init(ngx_http_request_t *r, ngx_http_file_cache_t *cache, ngx_http_complex_value_t *cache_key);
 void        ngx_http_cache_purge_handler(ngx_http_request_t *r);
 
 ngx_int_t   ngx_http_file_cache_purge(ngx_http_request_t *r);
 
-char       *ngx_http_cache_purge_conf(ngx_conf_t *cf,
-    ngx_http_cache_purge_conf_t *cpcf);
+char       *ngx_http_cache_purge_conf(ngx_conf_t *cf, ngx_http_cache_purge_conf_t *cpcf);
 
 void       *ngx_http_cache_purge_create_loc_conf(ngx_conf_t *cf);
-char       *ngx_http_cache_purge_merge_loc_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+char       *ngx_http_cache_purge_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
 static ngx_command_t  ngx_http_cache_purge_module_commands[] = {
     { ngx_string("proxy_cache_purge"),
@@ -239,8 +241,15 @@ typedef struct {
 ngx_int_t ngx_http_proxy_uri_save_mem_tree_handler(ngx_http_request_t* r){
     ngx_http_cache_purge_loc_conf_t  *cplcf;
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "REQUEST PREPROXY HANDLER: %V", &(r->uri));
+    //ngx_str_t if_modified_since_key = r->headers_in.if_modified_since->key;
+    if (r->headers_in.if_modified_since == NULL){
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "PREPROXY HEADER IF_MODIFIED DOES NOT SET");
+    }
+    //ngx_str_t if_modified_since_value = r->headers_in.if_modified_since->value;
+    //ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "REQUEST PREPROXY HEADER %V", &if_modified_since_key);
     cplcf = ngx_http_get_module_loc_conf(r, ngx_http_cache_purge_module);
     ngx_int_t code = cplcf->proxy_handler(r);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "PREPROXY PROXY CODE: %d", code);
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "RESPONSE PREPROXY HANDLER: %d", r->headers_out.status);
     return code;
 }
@@ -252,6 +261,9 @@ char * ngx_http_proxy_uri_save_mem_tree_conf(ngx_conf_t *cf, ngx_command_t *cmd,
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     cplcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_cache_purge_module);
     cplcf->proxy_handler = clcf->handler;
+    cplcf->root = ngx_pcalloc(cf->pool, sizeof(fs_hierarchy));
+    if(cplcf->root == NULL)
+        return "cannot allocate memory for root vfs node";
     return NGX_CONF_OK;
 }
 
